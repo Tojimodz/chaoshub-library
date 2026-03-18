@@ -1,0 +1,275 @@
+--// KENHUB FULL UI (ALL IN ONE)
+
+local KenHub = {}
+local TweenService = game:GetService("TweenService")
+local UIS = game:GetService("UserInputService")
+
+-- Tween helper
+local function Tween(obj, props, time)
+    TweenService:Create(obj, TweenInfo.new(time or 0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), props):Play()
+end
+
+-- NOTIFICATION
+function KenHub:Notify(title, text, duration)
+    local gui = Instance.new("ScreenGui", game.CoreGui)
+
+    local frame = Instance.new("Frame", gui)
+    frame.Size = UDim2.new(0,250,0,80)
+    frame.Position = UDim2.new(1,300,1,-90)
+    frame.BackgroundColor3 = Color3.fromRGB(30,30,30)
+
+    local titleLabel = Instance.new("TextLabel", frame)
+    titleLabel.Size = UDim2.new(1,0,0,30)
+    titleLabel.Text = title
+    titleLabel.TextColor3 = Color3.new(1,1,1)
+    titleLabel.BackgroundTransparency = 1
+
+    local textLabel = Instance.new("TextLabel", frame)
+    textLabel.Size = UDim2.new(1,0,1,-30)
+    textLabel.Position = UDim2.new(0,0,0,30)
+    textLabel.Text = text
+    textLabel.TextColor3 = Color3.new(1,1,1)
+    textLabel.BackgroundTransparency = 1
+
+    Tween(frame, {Position = UDim2.new(1,-260,1,-90)}, 0.4)
+
+    task.delay(duration or 3, function()
+        Tween(frame, {Position = UDim2.new(1,300,1,-90)}, 0.4)
+        task.wait(0.4)
+        gui:Destroy()
+    end)
+end
+
+-- WINDOW
+function KenHub:CreateWindow(title)
+    local gui = Instance.new("ScreenGui", game.CoreGui)
+
+    local main = Instance.new("Frame", gui)
+    main.Size = UDim2.new(0,500,0,350)
+    main.Position = UDim2.new(0.5,-250,0.5,-200)
+    main.BackgroundColor3 = Color3.fromRGB(25,25,25)
+    main.BackgroundTransparency = 1
+
+    Tween(main, {BackgroundTransparency = 0}, 0.4)
+    Tween(main, {Position = UDim2.new(0.5,-250,0.5,-175)}, 0.4)
+
+    -- DRAG
+    local dragging, dragStart, startPos
+
+    main.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.Touch 
+        or input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = true
+            dragStart = input.Position
+            startPos = main.Position
+        end
+    end)
+
+    UIS.InputChanged:Connect(function(input)
+        if dragging then
+            local delta = input.Position - dragStart
+            main.Position = UDim2.new(
+                startPos.X.Scale,
+                startPos.X.Offset + delta.X,
+                startPos.Y.Scale,
+                startPos.Y.Offset + delta.Y
+            )
+        end
+    end)
+
+    UIS.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.Touch 
+        or input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = false
+        end
+    end)
+
+    -- TITLE
+    local titleLabel = Instance.new("TextLabel", main)
+    titleLabel.Size = UDim2.new(1,0,0,30)
+    titleLabel.Text = title or "KenHub"
+    titleLabel.TextColor3 = Color3.new(1,1,1)
+    titleLabel.BackgroundTransparency = 1
+
+    -- HIDE BUTTON
+    local hideBtn = Instance.new("TextButton", main)
+    hideBtn.Size = UDim2.new(0,30,0,30)
+    hideBtn.Position = UDim2.new(1,-30,0,0)
+    hideBtn.Text = "-"
+    hideBtn.BackgroundColor3 = Color3.fromRGB(50,50,50)
+
+    local hidden = false
+    hideBtn.MouseButton1Click:Connect(function()
+        hidden = not hidden
+        for _,v in pairs(main:GetChildren()) do
+            if v ~= titleLabel and v ~= hideBtn then
+                v.Visible = not hidden
+            end
+        end
+    end)
+
+    -- TAB HOLDER
+    local tabButtons = Instance.new("Frame", main)
+    tabButtons.Size = UDim2.new(0,120,1,-30)
+    tabButtons.Position = UDim2.new(0,0,0,30)
+    tabButtons.BackgroundColor3 = Color3.fromRGB(20,20,20)
+
+    local UIList = Instance.new("UIListLayout", tabButtons)
+
+    local pages = Instance.new("Frame", main)
+    pages.Size = UDim2.new(1,-120,1,-30)
+    pages.Position = UDim2.new(0,120,0,30)
+    pages.BackgroundTransparency = 1
+
+    local Window = {}
+
+    function Window:CreateTab(name)
+        local tabBtn = Instance.new("TextButton", tabButtons)
+        tabBtn.Size = UDim2.new(1,0,0,30)
+        tabBtn.Text = name
+        tabBtn.BackgroundColor3 = Color3.fromRGB(40,40,40)
+
+        tabBtn.MouseEnter:Connect(function()
+            Tween(tabBtn, {BackgroundColor3 = Color3.fromRGB(60,60,60)}, 0.2)
+        end)
+        tabBtn.MouseLeave:Connect(function()
+            Tween(tabBtn, {BackgroundColor3 = Color3.fromRGB(40,40,40)}, 0.2)
+        end)
+
+        local page = Instance.new("Frame", pages)
+        page.Size = UDim2.new(1,0,1,0)
+        page.Visible = false
+        page.BackgroundTransparency = 1
+
+        local layout = Instance.new("UIListLayout", page)
+        layout.Padding = UDim.new(0,5)
+
+        tabBtn.MouseButton1Click:Connect(function()
+            for _,v in pairs(pages:GetChildren()) do
+                if v:IsA("Frame") then
+                    v.Visible = false
+                end
+            end
+            page.Visible = true
+            page.Position = UDim2.new(0,50,0,0)
+            Tween(page, {Position = UDim2.new(0,0,0,0)}, 0.3)
+        end)
+
+        local Tab = {}
+
+        -- BUTTON
+        function Tab:Button(text, callback)
+            local btn = Instance.new("TextButton", page)
+            btn.Size = UDim2.new(1,-10,0,35)
+            btn.Text = text
+            btn.BackgroundColor3 = Color3.fromRGB(40,40,40)
+
+            btn.MouseButton1Click:Connect(function()
+                Tween(btn, {Size = UDim2.new(1,-20,0,30)}, 0.1)
+                task.wait(0.1)
+                Tween(btn, {Size = UDim2.new(1,-10,0,35)}, 0.1)
+                if callback then callback() end
+            end)
+        end
+
+        -- TOGGLE
+        function Tab:Toggle(text, callback)
+            local state = false
+            local btn = Instance.new("TextButton", page)
+            btn.Size = UDim2.new(1,-10,0,35)
+            btn.Text = text.." : OFF"
+            btn.BackgroundColor3 = Color3.fromRGB(40,40,40)
+
+            btn.MouseButton1Click:Connect(function()
+                state = not state
+                Tween(btn, {BackgroundColor3 = state and Color3.fromRGB(0,170,100) or Color3.fromRGB(40,40,40)}, 0.2)
+                btn.Text = text.." : "..(state and "ON" or "OFF")
+                if callback then callback(state) end
+            end)
+        end
+
+        -- SLIDER (MOBILE + PC)
+        function Tab:Slider(text, min, max, callback)
+            local value = min
+
+            local frame = Instance.new("Frame", page)
+            frame.Size = UDim2.new(1,-10,0,50)
+            frame.BackgroundTransparency = 1
+
+            local label = Instance.new("TextLabel", frame)
+            label.Size = UDim2.new(1,0,0,20)
+            label.Text = text.." : "..value
+            label.TextColor3 = Color3.new(1,1,1)
+            label.BackgroundTransparency = 1
+
+            local sliderBG = Instance.new("Frame", frame)
+            sliderBG.Size = UDim2.new(1,0,0,12)
+            sliderBG.Position = UDim2.new(0,0,0,30)
+            sliderBG.BackgroundColor3 = Color3.fromRGB(50,50,50)
+
+            local sliderFill = Instance.new("Frame", sliderBG)
+            sliderFill.Size = UDim2.new(0,0,1,0)
+            sliderFill.BackgroundColor3 = Color3.fromRGB(0,170,255)
+
+            local dragging = false
+
+            local function update(x)
+                local pos = math.clamp((x - sliderBG.AbsolutePosition.X) / sliderBG.AbsoluteSize.X, 0, 1)
+                value = math.floor(min + (max - min) * pos)
+                label.Text = text.." : "..value
+
+                TweenService:Create(
+                    sliderFill,
+                    TweenInfo.new(0.1),
+                    {Size = UDim2.new(pos,0,1,0)}
+                ):Play()
+
+                if callback then callback(value) end
+            end
+
+            sliderBG.InputBegan:Connect(function(input)
+                if input.UserInputType == Enum.UserInputType.Touch 
+                or input.UserInputType == Enum.UserInputType.MouseButton1 then
+                    dragging = true
+                    update(input.Position.X)
+                end
+            end)
+
+            sliderBG.InputEnded:Connect(function(input)
+                if input.UserInputType == Enum.UserInputType.Touch 
+                or input.UserInputType == Enum.UserInputType.MouseButton1 then
+                    dragging = false
+                end
+            end)
+
+            UIS.InputChanged:Connect(function(input)
+                if dragging and (
+                    input.UserInputType == Enum.UserInputType.Touch 
+                    or input.UserInputType == Enum.UserInputType.MouseMovement
+                ) then
+                    update(input.Position.X)
+                end
+            end)
+        end
+
+        -- DROPDOWN
+        function Tab:Dropdown(text, list, callback)
+            local btn = Instance.new("TextButton", page)
+            btn.Size = UDim2.new(1,-10,0,35)
+            btn.Text = text
+            btn.BackgroundColor3 = Color3.fromRGB(40,40,40)
+
+            btn.MouseButton1Click:Connect(function()
+                local choice = list[math.random(1,#list)]
+                btn.Text = text.." : "..choice
+                if callback then callback(choice) end
+            end)
+        end
+
+        return Tab
+    end
+
+    return Window
+end
+
+return KenHub
